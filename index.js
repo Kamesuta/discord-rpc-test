@@ -72,8 +72,9 @@ client.on('ready', async () => {
     const vc = await client.request('GET_SELECTED_VOICE_CHANNEL');
     console.log(vc);
 
-    client.setUserVoiceSettings('655572647777796097', {
-        volume: 0.5,
+    // ボリュームをいじる
+    client.setUserVoiceSettings('922647793347207168', {
+        volume: 100,
     });
 });
 
@@ -85,7 +86,6 @@ try {
             clientId,
             scopes,
             accessToken,
-            redirectUri: 'https://streamkit.discord.com/',
         });
     } else {
         throw new Error('Access token not found');
@@ -98,6 +98,5 @@ try {
     await client.login({
         clientId,
         scopes,
-        redirectUri: 'https://streamkit.discord.com/',
     });
 }
