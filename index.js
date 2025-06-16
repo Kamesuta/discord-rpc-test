@@ -1,6 +1,7 @@
 import { Client } from 'discord-rpc';
 import { LocalStorage } from 'node-localstorage';
 import fs from 'fs';
+import inquirer from 'inquirer';
 
 // DiscordアプリケーションのクライアントID
 const clientId = '207646673902501888';
@@ -58,23 +59,8 @@ client.authorize = async function ({ scopes, rpcToken, prompt } = {}) {
     return access_token;
 }
 
-// 接続完了時のイベント
-client.on('ready', async () => {
-    // 接続に成功したら、アクセストークンをローカルストレージに保存する
-    // これにより、次回以降は認可を要求することなく、アクセストークンを利用してRPCに接続できる
-    localStorage.setItem('accessToken', client.accessToken);
-
-    // 接続完了時のログを出力
-    console.log('Logged in as', client.application.name);
-    console.log('Authed for user', client.user.username);
-
-    // コマンドライン引数からチャンネルIDを取得
-    const channelId = process.argv[2];
-    if (!channelId) {
-        console.error('チャンネルIDを指定してください。');
-        process.exit(1);
-    }
-
+// メッセージを取得して保存する関数
+async function fetchAndSaveMessages(channelId) {
     try {
         // チャンネルを取得
         const channel = await client.getChannel(channelId);
@@ -93,44 +79,57 @@ client.on('ready', async () => {
         
         fs.writeFileSync(outputPath, messageTexts);
         console.log(`メッセージを ${outputPath} に保存しました。`);
-
     } catch (error) {
         console.error('エラーが発生しました:', error);
     }
+}
 
-    // ボイスチャンネルに接続する
-    // const vc = await client.getChannel('1208210197689143337');
-    const vc = await client.request('GET_SELECTED_VOICE_CHANNEL');
-    console.log(vc);
+// 接続完了時のイベント
+client.on('ready', async () => {
+    localStorage.setItem('accessToken', client.accessToken);
+    console.log('Logged in as', client.application.name);
+    console.log('Authed for user', client.user.username);
 
-    // ボリュームをいじる
-    client.setUserVoiceSettings('922647793347207168', {
-        volume: 100,
-    });
+    let lastChannelId = null;
 
-    // 終了
-    process.exit(0);
+    while (true) {
+        const answers = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'channelId',
+                message: 'チャンネルIDを入力してください:',
+                default: lastChannelId,
+                validate: input => input.length > 0 ? true : 'チャンネルIDは必須です'
+            }
+        ]);
+
+        lastChannelId = answers.channelId;
+        await fetchAndSaveMessages(lastChannelId);
+    }
 });
 
-try {
-    // アクセストークンが保存されている場合は、それを利用してログインする
-    const accessToken = localStorage.getItem('accessToken');
-    if (accessToken) {
+// メインの処理
+async function main() {
+    try {
+        // アクセストークンが保存されている場合は、それを利用してログインする
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken) {
+            await client.login({
+                clientId,
+                scopes,
+                accessToken,
+            });
+        } else {
+            throw new Error('Access token not found');
+        }
+    } catch (error) {
+        console.error('Failed to login with access token, trying to login without access token');
         await client.login({
             clientId,
             scopes,
-            accessToken,
         });
-    } else {
-        throw new Error('Access token not found');
     }
-} catch (error) {
-    // ログ出力
-    console.error('Failed to login with access token, trying to login without access token');
-
-    // ログインに失敗した場合は、アクセストークンなしでログインする
-    await client.login({
-        clientId,
-        scopes,
-    });
 }
+
+// プログラムの実行
+main().catch(console.error);
