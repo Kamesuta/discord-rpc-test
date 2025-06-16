@@ -1,5 +1,6 @@
 import { Client } from 'discord-rpc';
 import { LocalStorage } from 'node-localstorage';
+import fs from 'fs';
 
 // DiscordアプリケーションのクライアントID
 const clientId = '207646673902501888';
@@ -67,6 +68,36 @@ client.on('ready', async () => {
     console.log('Logged in as', client.application.name);
     console.log('Authed for user', client.user.username);
 
+    // コマンドライン引数からチャンネルIDを取得
+    const channelId = process.argv[2];
+    if (!channelId) {
+        console.error('チャンネルIDを指定してください。');
+        process.exit(1);
+    }
+
+    try {
+        // チャンネルを取得
+        const channel = await client.getChannel(channelId);
+        console.log('チャンネルを取得しました:', channel.name);
+
+        // メッセージを取得
+        const messages = channel.messages;
+        console.log(`${messages.length}件のメッセージを取得しました。`);
+
+        // メッセージをテキストファイルとして保存
+        const outputPath = `messages_${channelId}.txt`;
+        const messageTexts = messages.map(msg => {
+            const timestamp = new Date(msg.timestamp).toLocaleString();
+            return `[${timestamp}] ${msg.author.username}: ${msg.content}`;
+        }).join('\n');
+        
+        fs.writeFileSync(outputPath, messageTexts);
+        console.log(`メッセージを ${outputPath} に保存しました。`);
+
+    } catch (error) {
+        console.error('エラーが発生しました:', error);
+    }
+
     // ボイスチャンネルに接続する
     // const vc = await client.getChannel('1208210197689143337');
     const vc = await client.request('GET_SELECTED_VOICE_CHANNEL');
@@ -76,6 +107,9 @@ client.on('ready', async () => {
     client.setUserVoiceSettings('922647793347207168', {
         volume: 100,
     });
+
+    // 終了
+    process.exit(0);
 });
 
 try {
