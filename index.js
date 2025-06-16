@@ -1,10 +1,11 @@
 import { Client } from 'discord-rpc';
 import { LocalStorage } from 'node-localstorage';
+import 'dotenv/config';
 import fs from 'fs';
 import inquirer from 'inquirer';
 
 // DiscordアプリケーションのクライアントID
-const clientId = '207646673902501888';
+const clientId = '1284453859615309905';
 // Discordアプリケーションのスコープ
 const scopes = ['rpc', 'messages.read'];
 
@@ -14,50 +15,7 @@ const localStorage = new LocalStorage('./saves');
 // Discord RPC Client の初期化
 const client = new Client({
     transport: 'ipc',
-    origin: 'https://streamkit.discord.com',
 });
-
-/**
- * Discord StreamKit のAPIを利用してアクセストークンを取得します。
- * (本来は自分で作ったアプリケーションのAPIを利用するべきですが、まだAPIが公開されていないため、StreamKitのAPIを利用しています)
- * 
- * StreamKitのAPIを利用するために、discord-rpcの内部関数を上書きしています。
- * 
- * @param {Object} options options
- * @returns {Promise}
- * @private
- */
-client.authorize = async function ({ scopes, rpcToken, prompt } = {}) {
-    // Discordデスクトップアプリに認可を要求する
-    // この時点で、Discordデスクトップアプリに、認可を要求するダイアログが表示されます。
-    const { code } = await this.request('AUTHORIZE', {
-        scopes,
-        client_id: this.clientId,
-        prompt,
-        rpc_token: rpcToken,
-    });
-
-    // StreamKitのAPIを利用してアクセストークンを取得する
-    const fetchStreamKit = ({ data } = {}) =>
-        fetch("https://streamkit.discord.com/overlay/token", {
-            "body": JSON.stringify(data),
-            "method": "POST",
-        }).then(async (r) => {
-            const body = await r.json();
-            if (!r.ok) {
-                const e = new Error(r.status);
-                e.body = body;
-                throw e;
-            }
-            return body;
-        });
-
-    // APIを叩いて、トークンを取得し、返す
-    const { access_token } = await fetchStreamKit({
-        data: { code },
-    });
-    return access_token;
-}
 
 // メッセージを取得して保存する関数
 async function fetchAndSaveMessages(channelId) {
@@ -126,6 +84,8 @@ async function main() {
         console.error('Failed to login with access token, trying to login without access token');
         await client.login({
             clientId,
+            clientSecret: process.env.DISCORD_CLIENT_SECRET,
+            redirectUri: 'http://localhost',
             scopes,
         });
     }
