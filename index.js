@@ -34,14 +34,20 @@ async function fetchAndSaveMessages(channelId) {
     try {
         // チャンネルを取得
         const channel = await client.getChannel(channelId);
-        console.log('チャンネルを取得しました:', channel.name);
+
+        // チャンネル名を取得
+        let channelName = channelId;
+        if (channel.name) {
+            channelName += `_${channel.name}`;
+        }
+        console.log('チャンネルを取得しました:', channelName);
 
         // メッセージを取得
         const messages = channel.messages;
         console.log(`${messages.length}件のメッセージを取得しました。`);
 
         // メッセージをテキストファイルとして保存
-        const outputPath = `messages_${channelId}.txt`;
+        const outputPath = `./saves/messages_${channelName}.txt`;
         const messageTexts = messages.map(msg => {
             const timestamp = new Date(msg.timestamp).toLocaleString();
             return `[${timestamp}] ${msg.author.username}: ${msg.content}`;
