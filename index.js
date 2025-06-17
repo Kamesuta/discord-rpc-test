@@ -5,7 +5,19 @@ import fs from 'fs';
 import inquirer from 'inquirer';
 
 // DiscordアプリケーションのクライアントID
-const clientId = '1284453859615309905';
+const clientId = process.env.DISCORD_CLIENT_ID;
+if (!clientId) {
+    console.error('DISCORD_CLIENT_IDが設定されていません。.envファイルを確認してください。');
+    process.exit(1);
+}
+
+// Discordアプリケーションのクライアントシークレット
+const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+if (!clientSecret) {
+    console.error('DISCORD_CLIENT_SECRETが設定されていません。.envファイルを確認してください。');
+    process.exit(1);
+}
+
 // Discordアプリケーションのスコープ
 const scopes = ['rpc', 'messages.read'];
 
@@ -45,8 +57,8 @@ async function fetchAndSaveMessages(channelId) {
 // 接続完了時のイベント
 client.on('ready', async () => {
     localStorage.setItem('accessToken', client.accessToken);
-    console.log('Logged in as', client.application.name);
-    console.log('Authed for user', client.user.username);
+    console.log('アプリケーション名:', client.application.name);
+    console.log('連携ユーザー名:', client.user.username);
 
     let lastChannelId = null;
 
@@ -76,15 +88,19 @@ async function main() {
                 clientId,
                 scopes,
                 accessToken,
+            }).catch(error => {
+                console.error('保存されたアクセストークンでのログインに失敗しました。新規認証が必要です。');
+                throw error;
             });
         } else {
-            throw new Error('Access token not found');
+            console.error('保存されたアクセストークンがありません。新規認証が必要です。');
+            throw new Error('新規認証が必要です。');
         }
     } catch (error) {
-        console.error('Failed to login with access token, trying to login without access token');
+        console.error('Discordデスクトップアプリを開き、認証を行ってください。');
         await client.login({
             clientId,
-            clientSecret: process.env.DISCORD_CLIENT_SECRET,
+            clientSecret,
             redirectUri: 'http://localhost',
             scopes,
         });
@@ -92,4 +108,7 @@ async function main() {
 }
 
 // プログラムの実行
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});

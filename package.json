@@ -1,11 +1,11 @@
 {
-  "name": "discord-rpc-test",
+  "name": "discord-rpc-message-fetcher",
   "type": "module",
   "version": "1.0.0",
-  "description": "",
+  "description": "Discord RPCを使用して特定のチャンネルのメッセージを取得し、テキストファイルとして保存するCLIツール",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
